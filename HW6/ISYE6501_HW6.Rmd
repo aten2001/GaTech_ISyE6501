@@ -1,0 +1,108 @@
+---
+title: "ISyE 6501 HW6"
+date: "September 17, 2019"
+output: pdf_document
+---
+
+## Question 9.1
+
+### Conclusion
+* Below is a lot of code and output, so we'll put the conclusion down first. Our new model expressed in the original variables is:  
+-16.93076M + 21.34368So + 12.82972Ed + 21.35216Po1 + 23.08832Po2 -346.5657LF  
+-8.293097M.F + 1.046216Pop + 1.500994NW -1509.935U1 + 1.688367U2 + 0.0400119Wealth  
+-6.902022Ineq + 144.9493Prob -0.9330765Time + 1666.485  
+
+* Also, the PCA with 4 principal components performed much worse than a simple linear regression (R-squared values of 0.2433 vs 0.7078, respectively).  
+
+### Procedure
+* First let's import the data.
+
+```{r}
+rm(list = ls())
+set.seed(123)
+
+crime_data = read.table("uscrime.txt", header = TRUE, stringsAsFactors = FALSE)
+crime_mod1 = lm(Crime ~ ., data = crime_data)
+summary(crime_mod1)
+```
+
+* Then let's run a pca analysis and summarize the analysis:
+```{r}
+crime_pca = prcomp(~., crime_data[,-16], scale.=TRUE, center = TRUE)
+summary(crime_pca)
+```
+
+* It's helpful to plot the variances against the proportional variances of the pca.
+```{r}
+variance = crime_pca$sdev^2
+prop_variance <- variance/sum(variance)
+plot(prop_variance,  xlab = "Principal Component", ylab = "Proportional Variance",
+     ylim = c(0,1) , type= "b")
+```
+
+* Further, we can look into a Scree Plot, which will help us determine how many components to utilize.
+```{r}
+screeplot(crime_pca, main = "Scree Plot", type = "line")
+abline(h=1, col="red")
+```
+
+* It looks like we should choose between 4 and 5 components. Let's go with 4 and then generate the new linear model using those components.
+```{r}
+top_pcs = cbind(crime_pca$x[,1:4],crime_data[,16])
+colnames(top_pcs) = c("PC1", "PC2", "PC3", "PC4", "Crime")
+head(top_pcs)
+
+# Now create a linear model using these principal components. 
+crime_lm = lm(Crime ~., data = as.data.frame(top_pcs))
+summary(crime_lm)
+```
+
+* We now have linear model that used the first 4 principal components. We see that the adjusted r-squared is 0.2433. Now let's retrieve the coefficients of the the principal components.
+
+```{r}
+beta_0 = crime_lm$coefficients[1]
+beta_i = crime_lm$coefficients[2:5]
+alpha_i = crime_pca$rotation[,1:4] %*% beta_i
+
+# we convert the alpha to adjust for scaling.
+
+adjusted_alpha = alpha_i/sapply(crime_data[,1:15],sd)
+adjusted_beta0 = beta_0 - sum(alpha_i*sapply(crime_data[,1:15],mean)/sapply(crime_data[,1:15],sd))
+
+t(adjusted_alpha)
+adjusted_beta0
+```
+
+* This gives us the new model in terms of the original variables. In other words, the model is:
+-16.93076M + 21.34368So + 12.82972Ed + 21.35216Po1 + 23.08832Po2 -346.5657LF  
+-8.293097M.F + 1.046216Pop + 1.500994NW -1509.935U1 + 1.688367U2 + 0.0400119Wealth  
+-6.902022Ineq + 144.9493Prob -0.9330765Time + 1666.485
+
+* If we compare this a relatively simpler linear regression model, we see the PCA model heavily underperforms relative to the full model (which has an adjusted R-squared value of 0.7078), despite using the same amount of data. This is because we left out some of the PCs. Had we specified all the PCs, estimates would be the same of regression.
+* On the other hand, we note that we obtain a good fit with a much lower number of regressors, which is because PCA takes out the multicollinearity between the variables and creates linear combinations that are orthogonal to each other.
+* Overall, we clearly see the pros/cons of PCA. It reduces a problem's dimensionality and is particularly helpful when the original predictors are strongly correlated. However, it does not reduce the data requirements and therefore the associated costs of collecting data.
+```{r}
+lm_mod = lm(Crime ~., data = crime_data)
+summary(lm_mod)
+```
+
+* Comparing our model to the one in HW5, the model "only" explained 48.55% of the variation in Crime.
+```{r}
+# Remove observations 4 and 26 (likely outliers). 
+data = read.delim("uscrime.txt", header=TRUE)
+data = data[-c(4,26),]
+# re-code 'Prob' to percentage-points into 'Prob2'
+Prob2 = data$Prob*100
+data = cbind(data, Prob2)
+data = within(data, rm(Prob))
+# re-order data and isolate PCA data
+data = data[c(1:14, 16, 15)]
+pca = data[c(1:15)]
+
+model = prcomp(pca, center=TRUE, scale=TRUE)
+
+# run model
+model3 = lm(Crime ~ Wealth + M + factor(So) + Po1 + Prob2, data = data)
+summary(model3)
+summary(model3)$r.squared
+```
