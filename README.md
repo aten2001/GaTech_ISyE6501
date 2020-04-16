@@ -1,7 +1,8 @@
-# MS in Analytics at the Georgia Institute of Technology
+# MS in Analytics at the Georgia Institute of Technology – Fall Semester 2019
 
+## ISyE 6501 – Analytics Modeling
 
-## HOMEWORK ASSIGNMENTS
+### HOMEWORK ASSIGNMENTS
 
 The class covered the following topics:
 
