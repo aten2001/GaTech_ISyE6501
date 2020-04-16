@@ -1,4 +1,4 @@
-# MS in Analytics at the Georgia Institute of Technology – Fall 2019
+# MS in Analytics at Georgia Tech – Fall 2019
 
 ## ISyE 6501 – Analytics Modeling
 
